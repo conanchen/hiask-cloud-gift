@@ -1,0 +1,107 @@
+buildscript {
+	ext {
+		springBootVersion = '1.5.6.RELEASE'
+		IGNITE_VERSION = '2.0.0'
+		grpc_version = '1.5.0' // CURRENT_GRPC_VERSION
+	}
+	repositories {
+		mavenCentral()
+		maven { url 'http://repo.spring.io/plugins-release' }
+		maven { url "https://plugins.gradle.org/m2/"}
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+		classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.3'
+	}
+}
+apply plugin: 'idea'
+apply plugin: 'com.google.protobuf'
+apply plugin: 'org.springframework.boot'
+
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+	jcenter()
+}
+
+
+dependencies {
+
+	compile "org.lognet:grpc-spring-boot-starter:2.0.5"
+
+	compile('org.springframework.boot:spring-boot-starter-web')
+	compile "org.springframework.boot:spring-boot-starter-actuator"
+	testCompile('org.springframework.boot:spring-boot-starter-test')
+	testCompile 'org.springframework.boot:spring-boot-starter-aop'
+
+
+	compile "org.apache.ignite:ignite-core:$IGNITE_VERSION"
+	compile "org.apache.ignite:ignite-spring:$IGNITE_VERSION"
+	compile "org.apache.ignite:ignite-spring-data:$IGNITE_VERSION"
+	compile "org.apache.ignite:ignite-indexing:$IGNITE_VERSION"
+	compile "com.h2database:h2:1.4.195"
+
+	compile "com.google.api.grpc:proto-google-common-protos:0.1.9"
+	compile "io.grpc:grpc-netty:${grpc_version}"
+	compile "io.grpc:grpc-protobuf:${grpc_version}"
+	compile "io.grpc:grpc-stub:${grpc_version}"
+
+	testCompile "io.grpc:grpc-testing:${grpc_version}"
+	testCompile "junit:junit:4.12"
+//	testCompile "org.mockito:mockito-core:2.8.47"
+
+	compile "org.projectlombok:lombok:1.16.6"
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir 'src/main/proto/generated'
+		}
+	}
+}
+
+protobuf {
+	protoc {
+		artifact = 'com.google.protobuf:protoc:3.0.0'
+	}
+	plugins {
+		grpc {
+			artifact = "io.grpc:protoc-gen-grpc-java:${grpc_version}"
+		}
+	}
+
+	generateProtoTasks {
+		ofSourceSet('main').each { task ->
+			task.builtins {
+				java{
+					outputSubDir = 'proto/generated'
+				}
+			}
+			task.plugins {
+				grpc {
+					outputSubDir = 'proto/generated'
+					option 'enable_deprecated=false'
+				}
+			}
+		}
+	}
+	generatedFilesBaseDir = "$projectDir/src/"
+}
+
+task cleanProtoGen{
+	doFirst{
+		delete("$projectDir/src/main/proto/generated")
+	}
+}
+clean.dependsOn cleanProtoGen
+
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.boot:spring-boot-starter-parent:${springBootVersion}"
+	}
+}
+
